@@ -1,0 +1,274 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El mejor Portal de Addons de Minecraft Bedrock</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #0b0b0b; color: #ffffff; display: flex; flex-direction: column; align-items: center; padding-bottom: 80px; }
+        header { width: 100%; max-width: 500px; padding: 20px 15px; text-align: left; }
+        header h1 { font-size: 24px; font-weight: 800; }
+        .content-container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 24px; padding: 0 15px; }
+        .search-box-container { width: 100%; display: none; flex-direction: column; margin-top: 35px; }
+        .search-input { width: 100%; background-color: #161616; border: 1px solid #262626; color: #ffffff; padding: 15px; border-radius: 12px; font-size: 16px; outline: none; }
+        .search-input:focus { border-color: #ff2233; }
+        .addons-list { display: flex; flex-direction: column; gap: 24px; width: 100%; }
+        .addon-card { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+        .image-container { position: relative; width: 100%; aspect-ratio: 16 / 9; background-color: #1a1a1a; border-radius: 20px; overflow: hidden; cursor: pointer; }
+        .addon-thumb { width: 100%; height: 100%; object-fit: cover; }
+        .minecraft-badge { position: absolute; bottom: 12px; left: 12px; background-color: rgba(18, 18, 11, 0.85); border: 2.5px solid #545435; color: #dbdb71; padding: 4px 10px; font-size: 15px; font-family: monospace; font-weight: bold; border-radius: 4px; box-shadow: 2px 2px 0px #000; }
+        .addon-info { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; gap: 15px; }
+        .info-left { display: flex; flex-direction: column; gap: 8px; }
+        .addon-title { font-size: 17px; font-weight: 700; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 340px; }
+        .category-tag { background-color: #e51c23; color: #ffffff; font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 6px; width: max-content; text-transform: uppercase; }
+        .download-action-btn { width: 42px; height: 42px; background-color: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .download-action-btn svg { width: 20px; height: 20px; fill: #aaaaaa; }
+        
+        /* Overlays (Pasos, Detalles y Pantalla Final) */
+        .fullscreen-overlay { display: none; position: fixed; inset: 0; background: #0b0b0b; z-index: 2000; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .step-container { width: 100%; max-width: 340px; text-align: center; display: flex; flex-direction: column; gap: 15px; }
+        .step-title { font-size: 22px; font-weight: 800; color: #ffffff; }
+        
+        /* Sección de Descripción Integrada en Detalles */
+        .addon-description-text { font-size: 14px; color: #aaaaaa; text-align: left; line-height: 1.5; margin: 5px 0 10px 0; max-height: 120px; overflow-y: auto; padding-right: 5px; }
+        
+        .step-btn { width: 100%; background-color: #161616; border: 1px solid #262626; color: #ffffff; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; }
+        .step-btn.completed { border-color: #25d366; color: #25d366; background-color: rgba(37, 211, 102, 0.05); }
+        
+        /* Botón Rojo de Descarga */
+        .red-download-btn { width: 100%; background-color: #e51c23; color: #ffffff; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 10px; }
+        .close-overlay-btn { background: none; border: none; color: #555555; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        
+        .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 500px; height: 68px; background-color: #000000; border-top: 1px solid #161616; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; background: none; border: none; color: #555555; cursor: pointer; font-size: 11px; font-weight: 600; width: 50%; height: 100%; justify-content: center; }
+        .nav-item.active { color: #e51c23; }
+        .nav-item.active svg { fill: #e51c23; }
+        .nav-item svg { width: 24px; height: 24px; fill: #555555; }
+        .loader { text-align: center; padding: 20px; color: #e51c23; font-size: 15px; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <header id="main-header">
+        <h1>XZ addons</h1>
+    </header>
+
+    <div class="content-container">
+        <div class="search-box-container" id="search-section">
+            <input type="text" class="search-input" id="search-bar" placeholder="Buscar complementos Bedrock...">
+        </div>
+        <div class="loader" id="api-status">Cargando complementos oficiales...</div>
+        <div class="addons-list" id="addons-render"></div>
+    </div>
+
+    <!-- Apartado de Detalles del Addon -->
+    <div id="details-overlay" class="fullscreen-overlay">
+        <div class="step-container">
+            <div class="image-container" style="cursor: default;">
+                <img id="detail-img" class="addon-thumb" src="" alt="">
+            </div>
+            <div id="detail-title" style="font-size: 22px; font-weight: 800; text-align: left; margin-top: 5px;"></div>
+            <div id="detail-description" class="addon-description-text"></div>
+            <button class="red-download-btn" onclick="startVerificationFromDetails()">Descargar</button>
+            <button class="close-overlay-btn" onclick="closeOverlay('details-overlay')">← Volver al Inicio</button>
+        </div>
+    </div>
+
+    <!-- Interfaz de los 4 pasos cortos -->
+    <div id="step-overlay" class="fullscreen-overlay">
+        <div class="step-container">
+            <div class="step-title" id="addon-target-title">Pasos de Verificación</div>
+            <p style="color: #888; font-size: 13px; margin-bottom: 10px;">Completa los 4 pasos interactuando 6 segundos en cada enlace para iniciar tu descarga.</p>
+            <button class="step-btn" id="step1" onclick="processSmartlinkStep(1)">Paso 1</button>
+            <button class="step-btn" id="step2" onclick="processSmartlinkStep(2)">Paso 2</button>
+            <button class="step-btn" id="step3" onclick="processSmartlinkStep(3)">Paso 3</button>
+            <button class="step-btn" id="step4" onclick="processSmartlinkStep(4)">Paso 4</button>
+            <button class="close-overlay-btn" onclick="closeOverlay('step-overlay')">← Cancelar y Volver</button>
+        </div>
+    </div>
+
+    <!-- Nueva Pantalla Final: ¡Enlace Listo! -->
+    <div id="final-overlay" class="fullscreen-overlay">
+        <div class="step-container">
+            <div class="step-title" style="color: #25d366;">¡Verificación Exitosa!</div>
+            <div class="image-container" style="cursor: default;">
+                <img id="final-img" class="addon-thumb" src="" alt="">
+            </div>
+            <div id="final-addon-title" style="font-size: 20px; font-weight: 800; text-align: center; margin-top: 5px;"></div>
+            <p style="color: #aaa; font-size: 14px;">Tu archivo está listo para ser descargado.</p>
+            <button class="red-download-btn" onclick="goToFinalDownload()">Ir al enlace de descarga</button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <button class="nav-item active" id="btn-home" onclick="switchTab('home')">
+            <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home
+        </button>
+        <button class="nav-item" id="btn-search" onclick="switchTab('search')">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Search
+        </button>
+    </nav>
+
+    <script>
+        const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1fC8T-0TDL6mmNVQO4jw0gyjain3tKmAdoflrLdcAnXQ/export?format=csv';
+        const SMARTLINK_URL = 'https://aquivatusmartlink.com'; 
+        
+        let localModsArray = [];
+        let currentTab = 'home';
+        let currentDownloadUrl = "", completedSteps = 0, lastClickTime = 0, currentActiveStep = 0, activeTitle = "", activeImgUrl = "";
+
+        async function loadInitialMods() {
+            try {
+                const response = await fetch(GOOGLE_SHEET_URL);
+                const data = await response.text();
+                const rows = data.split('\n');
+                
+                const parsedMods = rows.slice(1).map(row => {
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if (cols.length >= 3) {
+                        const descText = (cols[3] && cols[3].trim() !== '') ? cols[3].replace(/"/g, '').trim() : 'Sin descripción disponible por el momento.';
+                        return { 
+                            title: cols[0].replace(/"/g, '').trim(), 
+                            icon_url: cols[1].replace(/"/g, '').trim(), 
+                            slug: cols[2].replace(/"/g, '').trim(),
+                            description: descText
+                        };
+                    }
+                    return null;
+                }).filter(mod => mod && mod.title);
+                
+                localModsArray = parsedMods.reverse();
+                if (localModsArray.length > 0) {
+                    document.getElementById('api-status').style.display = 'none';
+                    if (currentTab === 'home') renderMods(localModsArray);
+                } else {
+                    document.getElementById('api-status').innerText = 'No se encontraron addons.';
+                }
+            } catch (error) {
+                document.getElementById('api-status').innerText = 'Error de conexión.';
+            }
+        }
+
+        function renderMods(mods) {
+            const container = document.getElementById('addons-render');
+            container.innerHTML = '';
+            mods.forEach(mod => {
+                const card = document.createElement('div');
+                card.className = 'addon-card';
+                const thumbnail = mod.icon_url ? mod.icon_url : 'https://via.placeholder.com/500x281/111/fff?text=Minecraft+Addon';
+                const cleanTitle = mod.title.replace(/'/g, "\\'");
+                const cleanDesc = mod.description.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                
+                card.innerHTML = `
+                    <div class="image-container" onclick="openDetails('${cleanTitle}', '${thumbnail}', '${mod.slug}', '${cleanDesc}')">
+                        <img class="addon-thumb" src="${thumbnail}" alt="${mod.title}" loading="lazy">
+                        <div class="minecraft-badge">Add-On</div>
+                    </div>
+                    <div class="addon-info">
+                        <div class="info-left">
+                            <div class="addon-title">${mod.title}</div>
+                            <div class="category-tag">Add-ons</div>
+                        </div>
+                        <div class="download-action-btn" onclick="openStepSystem('${cleanTitle}', '${thumbnail}', '${mod.slug}')">
+                            <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openDetails(title, imgUrl, downloadUrl, description) {
+            activeTitle = title;
+            activeImgUrl = imgUrl;
+            currentDownloadUrl = downloadUrl;
+            document.getElementById('detail-img').src = imgUrl;
+            document.getElementById('detail-title').innerText = title;
+            document.getElementById('detail-description').innerText = description;
+            document.getElementById('details-overlay').style.display = 'flex';
+        }
+
+        function startVerificationFromDetails() {
+            closeOverlay('details-overlay');
+            openStepSystem(activeTitle, activeImgUrl, currentDownloadUrl);
+        }
+
+        function openStepSystem(title, imgUrl, downloadUrl) {
+            currentDownloadUrl = downloadUrl;
+            activeImgUrl = imgUrl;
+            activeTitle = title;
+            completedSteps = 0; currentActiveStep = 0; lastClickTime = 0;
+            document.getElementById('addon-target-title').innerText = title;
+            for(let i = 1; i <= 4; i++) {
+                const btn = document.getElementById(`step${i}`);
+                btn.className = "step-btn"; btn.innerText = `Paso ${i}`;
+            }
+            document.getElementById('step-overlay').style.display = 'flex';
+        }
+
+        function closeOverlay(id) { document.getElementById(id).style.display = 'none'; }
+
+        function processSmartlinkStep(stepNum) {
+            const btn = document.getElementById(`step${stepNum}`);
+            if (btn.classList.contains('completed')) return;
+            currentActiveStep = stepNum;
+            lastClickTime = Date.now();
+            window.open(SMARTLINK_URL, '_blank');
+            btn.innerText = "⏳ Verificando...";
+        }
+
+        window.onfocus = function() {
+            if (currentActiveStep > 0 && lastClickTime > 0) {
+                const secondsPassed = (Date.now() - lastClickTime) / 1000;
+                const btn = document.getElementById(`step${currentActiveStep}`);
+                if (secondsPassed >= 6) {
+                    btn.classList.add('completed');
+                    btn.innerText = "✅ COMPLETADO";
+                    completedSteps++;
+                    if (completedSteps >= 4) {
+                        setTimeout(() => { 
+                            closeOverlay('step-overlay');
+                            // En vez de redireccionar directo, abrimos la nueva interfaz final
+                            document.getElementById('final-img').src = activeImgUrl;
+                            document.getElementById('final-addon-title').innerText = activeTitle;
+                            document.getElementById('final-overlay').style.display = 'flex';
+                        }, 500);
+                    }
+                } else {
+                    alert("⚠️ Tienes que interactuar al menos 6 segundos en la página para asegurar la calidad.");
+                    btn.innerText = `Reintentar Paso ${currentActiveStep}`;
+                }
+                currentActiveStep = 0; lastClickTime = 0;
+            }
+        };
+
+        function goToFinalDownload() {
+            window.location.href = currentDownloadUrl;
+            closeOverlay('final-overlay');
+        }
+
+        document.getElementById('search-bar').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (currentTab === 'search') {
+                if (query === '') { document.getElementById('addons-render').innerHTML = ''; }
+                else { renderMods(localModsArray.filter(mod => mod.title.toLowerCase().includes(query))); }
+            }
+        });
+
+        function switchTab(tab) {
+            currentTab = tab;
+            const btnHome = document.getElementById('btn-home'), btnSearch = document.getElementById('btn-search'), searchSection = document.getElementById('search-section'), header = document.getElementById('main-header'), container = document.getElementById('addons-render');
+            if (tab === 'home') {
+                btnHome.classList.add('active'); btnSearch.classList.remove('active'); searchSection.style.display = 'none';
+                header.style.display = 'block'; document.getElementById('search-bar').value = ''; renderMods(localModsArray);
+            } else {
+                btnSearch.classList.add('active'); btnHome.classList.remove('active'); searchSection.style.display = 'flex';
+                header.style.display = 'none'; container.innerHTML = ''; document.getElementById('search-bar').value = ''; document.getElementById('search-bar').focus();
+            }
+        }
+        loadInitialMods();
+    </script>
+</body>
+</html>
